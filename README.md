@@ -91,6 +91,29 @@ Real-time map layers (flights, fires, earthquakes, satellites, maritime, weather
 
 ---
 
+## What changed in the backend (and why)
+
+The upstream Osiris isn't fully runnable out of the box — three things break for any new clone:
+
+1. **Scanner backend was a proxy to a private service.** `src/app/api/scanner/route.ts` upstream expected `SCANNER_URL`/`SCANNER_KEY` env vars pointing to a separate nmap/nikto service on port 7700 that isn't published anywhere. The hosted demo at osirisai.live runs it on private infra. Locally, the six RECON tools (Port Scan, Vuln, Headers, SSL, Subdomains, Tech Detect) all returned `503 Scanner not configured`.
+
+    **RudraOSINT replaces the proxy with a self-hosted implementation** in `src/app/api/scanner/route.ts`:
+   - Port / quick / deep scans use `node:net` TCP-connect with concurrency capping
+   - SSL/TLS inspection uses `node:tls` peer-certificate inspection
+   - Headers, tech detect run via `safeFetch` with header + HTML signature matching
+   - Subdomain enumeration hits crt.sh directly
+   - Vuln scan layers exposed-service heuristics over the quick scan
+
+    Trade-off vs upstream: no OS detection, no service-version detection (no nmap `-sV`). Gain: zero config, no Docker sidecar, works on Vercel.
+
+2. **BGP/ASN upstream used `bgpview.io`, which is defunct.** Its DNS no longer resolves (NXDOMAIN from `8.8.8.8`). RudraOSINT uses **RIPEstat** instead — same data, more reliable, also free / no key.
+
+3. **`crt.sh` is genuinely flaky.** Upstream had a 10s timeout that often fired before crt.sh responded. RudraOSINT bumps the timeout to 25s and races crt.sh against **CertSpotter** — whichever returns first wins, so certs work even during crt.sh outages.
+
+The other recon endpoints (`/api/osint/dns`, `/whois`, `/ip`, `/cve`, `/threats`, `/sweep`) are upstream code unchanged.
+
+---
+
 ## Tech stack
 
 | Layer       | Technology                          |
