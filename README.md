@@ -1,169 +1,119 @@
 <div align="center">
 
-# ⬡ OSIRIS
+# ⬡ OSIRIS — Beginner OSINT Edition
 
-### Open Source Intelligence & Reconnaissance Integrated System
+### A simple, friendly OSINT toolkit + public CCTV browser
 
-[![Live Demo](https://img.shields.io/badge/osirisai.live-00E5FF?style=for-the-badge&logo=vercel&logoColor=white)](https://osirislive.app)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org)
-[![MapLibre](https://img.shields.io/badge/MapLibre_GL-GPU_Rendered-396CB2?style=for-the-badge)](https://maplibre.org)
 [![License](https://img.shields.io/badge/License-MIT-D4AF37?style=for-the-badge)](LICENSE)
 
-**A real-time global intelligence dashboard that aggregates live flight tracking, CCTV networks, earthquake monitoring, conflict zone mapping, and 24/7 news feeds into a single GPU-accelerated interface.**
+**Look up DNS, WHOIS, certificates, IP reputation, open ports and CVEs — all from your browser. Plus a clean browser for 2,000+ public traffic and city cameras. No accounts, no installs, no API keys.**
 
-[Live Demo](https://osirisai.live) · [Report Bug](https://github.com/simplifaisoul/osiris/issues) · [Request Feature](https://github.com/simplifaisoul/osiris/issues) · [Join Discord](https://discord.gg/umBykEpb98)
+Forked from [simplifaisoul/osiris](https://github.com/simplifaisoul/osiris) and trimmed to the **RECON toolkit + CCTV** with a beginner-friendly UI.
 
 </div>
 
 ---
 
-## Overview
+## Why this fork?
 
-Osiris is a production-grade OSINT platform that provides situational awareness across multiple intelligence domains. Built with Next.js 16 and MapLibre GL, every data point is rendered via WebGL for 60fps performance even with thousands of concurrent entities on-screen.
+Upstream Osiris is a brilliant kitchen-sink situational-awareness dashboard — flights, satellites, fires, earthquakes, news, conflict zones, all rendered on a 3D globe. Powerful, but overwhelming if you just want to learn OSINT.
 
-### Key Capabilities
+This fork keeps **two things** and makes them easy to use:
 
-| Domain | Data Points | Sources |
-|--------|------------|---------|
-| **Aviation** | Commercial, Private, Military, Jets | OpenSky Network |
-| **Maritime** | 39 Global Ports, 10 Chokepoints | Static Naval Intel |
-| **CCTV** | 2,000+ Cameras | TfL, WSDOT, Caltrans, NYC DOT, VicRoads + more |
-| **Seismic** | Real-time M2.5+ | USGS Earthquake API |
-| **Fires** | Active Hotspots | NASA FIRMS |
-| **News** | 24/7 Live Streams | 25+ Global Broadcasters |
-| **Weather** | Severe Events | NASA EONET |
-| **Space** | Solar Weather, Satellites | NOAA SWPC, N2YO |
-| **Cyber** | CVE Threats, Vulnerability Scanning | NVD, Custom Scanner |
-| **Conflict** | 13 Active Zones | Static OSINT Intel |
+1. **The RECON toolkit** — DNS, WHOIS, certs, BGP, IP intel, threats, headers, SSL, subdomains, tech detect, port + vuln scans.
+2. **Public CCTV** — 2,000+ traffic and city cameras you can watch live.
+
+Everything else (flights, fires, news, weather, conflict, etc.) has been removed. The interface is three tabs — **Investigate · Cameras · Help** — with plain-language labels, a first-visit tour, an FAQ, and a glossary.
 
 ---
 
-## Architecture
+## Screens
 
-```
-┌─────────────────────────────────────────────────┐
-│                  OSIRIS CLIENT                   │
-│  ┌──────────┐  ┌──────────┐  ┌───────────────┐ │
-│  │ MapLibre  │  │  HUD     │  │  RECON Toolkit│ │
-│  │  GL (GPU) │  │ Panels   │  │  Port Scan    │ │
-│  │  WebGL    │  │ Layers   │  │  DNS / WHOIS  │ │
-│  │  Render   │  │ Controls │  │  Vuln Scanner │ │
-│  └──────────┘  └──────────┘  └───────────────┘ │
-├─────────────────────────────────────────────────┤
-│               NEXT.JS API ROUTES                 │
-│  /api/flights  /api/earthquakes  /api/cctv      │
-│  /api/news     /api/fires        /api/maritime  │
-│  /api/gdelt    /api/satellites   /api/weather   │
-│  /api/scanner  /api/sentinel     /api/osint/*   │
-├─────────────────────────────────────────────────┤
-│              EXTERNAL DATA SOURCES               │
-│  OpenSky · USGS · NASA · NOAA · TfL · NVD      │
-│  GDACS · EONET · FIRMS · N2YO · RSS Feeds      │
-└─────────────────────────────────────────────────┘
-```
+- **Investigate** — pick a tool, type a domain or IP, read the result.
+- **Cameras** — filter by country, search by city, click a card to watch live.
+- **Help** — 60-second tour, tool reference, FAQ, glossary, safety note.
 
 ---
 
-## Features
-
-### Intelligence Layers
-- **15 toggleable data layers** with real-time entity counts
-- **GPU-accelerated rendering** — all map data rendered via WebGL, not DOM
-- **Progressive loading** — data fetched on-demand when layers are activated
-- **Viewport-aware** — only loads relevant data for the visible region
-
-### RECON Toolkit
-- **Port Scanner** — TCP connect scan with service fingerprinting
-- **DNS Lookup** — Full record resolution (A, AAAA, MX, NS, TXT, CNAME)
-- **WHOIS** — Domain/IP registration data
-- **SSL/TLS Inspector** — Certificate chain analysis
-- **IP Intelligence** — Geolocation, ASN, and threat reputation
-- **Vulnerability Scanner** — CVE lookup against NVD database
-
-### Live Broadcast Network
-- **25+ live 24/7 news streams** from global broadcasters
-- Click any news dot on the map to open the live stream
-- Feeds from NBC, CBS, ABC, Sky News, Al Jazeera, France 24, NHK, WION, and more
-
-### Conflict Zone Monitoring
-- **13 active conflict/tension zones** with severity-coded warning markers
-- Active Wars: Ukraine, Gaza, Sudan, Myanmar, DRC, Yemen
-- High Tension: Syria, Lebanon, Sahel, Somalia, Red Sea
-- Elevated: Taiwan Strait, Korean DMZ
-
-### Performance Optimized
-- **75% reduction in edge requests** vs initial release
-- Aggressive polling relaxation (15-30 min intervals for stable data)
-- Static data served from memory (zero external API calls for news feeds)
-- `layerFetchedRef` prevents duplicate API requests
-
----
-
-## Quick Start
+## Quick start
 
 ```bash
-git clone https://github.com/simplifaisoul/osiris.git
+git clone https://github.com/lazykasi/osiris.git
 cd osiris
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3000](http://localhost:3000) and follow the welcome tour.
 
-### Environment Variables
-
-Create a `.env.local` file:
-
-```env
-# Optional — enhances flight data
-OPENSKY_USERNAME=your_username
-OPENSKY_PASSWORD=your_password
-
-# Optional — satellite tracking
-N2YO_API_KEY=your_key
-```
-
-> Most features work without any API keys. The platform is designed to be functional out of the box.
+No environment variables required. Everything works out of the box on public data sources.
 
 ---
 
-## Tech Stack
+## What's included
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | Next.js 16 (App Router, Turbopack) |
-| Language | TypeScript 5 |
-| Map Engine | MapLibre GL JS (WebGL) |
-| Animations | Framer Motion |
-| Icons | Lucide React |
-| Styling | Custom CSS Design System |
-| Deployment | Vercel Edge Network |
+### RECON tools (Investigate tab)
+
+| Tool         | What it does                                         |
+|--------------|------------------------------------------------------|
+| Port scan    | Knock on common server ports and report what's open  |
+| Vuln scan    | Match open ports against known CVEs                  |
+| DNS          | A, AAAA, MX, NS, TXT, CNAME records                  |
+| WHOIS        | Domain/IP registration data                          |
+| Certs        | Certificate Transparency log search                  |
+| Threats      | IP / domain / hash reputation                        |
+| Headers      | HTTP response headers                                |
+| SSL/TLS      | Live certificate chain inspection                    |
+| Subdomains   | Subdomain enumeration                                |
+| Tech detect  | Web tech fingerprinting                              |
+| IP sweep     | Range scanning with progress                         |
+
+### CCTV (Cameras tab)
+
+Public traffic, transit and city cameras from:
+
+- Transport for London (UK)
+- Washington State DOT (US-West)
+- Caltrans (US-West)
+- NYC DOT (US-East)
+- VicRoads (Australia)
+- Public networks in Bulgaria, Greece, Serbia, North Macedonia, Romania, Turkey
+
+All feeds are already public — Osiris just lays them out in one place with a search/filter UI and a built-in viewer.
 
 ---
 
-## Keyboard Shortcuts
+## What was removed from upstream
 
-| Key | Action |
-|-----|--------|
-| `F` | Toggle flight layers |
-| `E` | Toggle earthquakes |
-| `S` | Toggle satellites |
-| `D` | Toggle day/night cycle |
-| `Escape` | Close panels |
+Real-time map layers (flights, fires, earthquakes, satellites, maritime, weather), live news streams, conflict-zone overlays, markets/space-weather panels, the 3D MapLibre globe, region dossiers and the upstream Palantir-alternative positioning. Also removed the giant `fork.diff` and `ito69_fork.diff` files. See the initial commit on the `beginner-osint-dashboard` branch for the exact deletion list.
+
+---
+
+## Tech stack
+
+| Layer       | Technology                          |
+|-------------|-------------------------------------|
+| Framework   | Next.js 16 (App Router, Turbopack)  |
+| Language    | TypeScript 5                        |
+| Animations  | Framer Motion                       |
+| Icons       | Lucide React                        |
+| Streaming   | HLS.js (for HLS video cameras)      |
+| Deployment  | Vercel-friendly (Edge runtime)      |
+
+Dependencies dropped vs upstream: `maplibre-gl`, `react-map-gl`, `rss-parser`, `satellite.js`.
+
+---
+
+## Use responsibly
+
+Looking up DNS, WHOIS, certificates and BGP is generally fine — that data is published. **Running port and vulnerability scans against systems you do not own or have written authorisation to test may be illegal where you live.** When in doubt, stop. The Help tab covers this in more detail.
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+MIT, same as upstream — see [LICENSE](LICENSE).
 
----
-
-<div align="center">
-
-**Built by [simplifaisoul](https://github.com/simplifaisoul)**
-
-[Join our Discord to be a part of this movement!](https://discord.gg/umBykEpb98)
-
-</div>
+Upstream credit: [simplifaisoul/osiris](https://github.com/simplifaisoul/osiris).
