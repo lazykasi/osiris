@@ -3,8 +3,8 @@ import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
 import ErrorBoundary from '@/components/ErrorBoundary';
 
-const SITE_NAME = "OSIRIS";
-const SITE_TITLE = "OSIRIS — Beginner-friendly OSINT toolkit";
+const SITE_NAME = "RudraOSINT";
+const SITE_TITLE = "RudraOSINT — Beginner-friendly OSINT toolkit";
 const SITE_DESCRIPTION =
   "A simple OSINT dashboard. Look up DNS, WHOIS, certificates, BGP, IP reputation, open ports and CVEs from your browser. Browse 2,000+ public traffic and city cameras. No accounts, no install.";
 

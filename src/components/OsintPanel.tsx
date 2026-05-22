@@ -22,6 +22,8 @@ const TABS = [
   { id: 'ssl', label: 'SSL/TLS', icon: Shield, placeholder: 'Domain name', color: '#76FF03' },
   { id: 'subdomains', label: 'SUBDOMAINS', icon: Layers, placeholder: 'Domain to enumerate', color: '#00BCD4' },
   { id: 'tech', label: 'TECH DETECT', icon: Fingerprint, placeholder: 'URL to fingerprint', color: '#9C27B0' },
+  { id: 'ip', label: 'IP INTEL', icon: MapPin, placeholder: 'IPv4 address (e.g. 8.8.8.8)', color: '#00BCD4' },
+  { id: 'bgp', label: 'BGP/ASN', icon: Network, placeholder: 'IP, ASN (AS15169) or prefix', color: '#FFC107' },
   { id: 'sweep', label: 'IP SWEEP', icon: Crosshair, placeholder: 'Enter IP address (e.g. 8.8.8.8)', color: '#FF3D3D' },
 ];
 
@@ -100,6 +102,8 @@ function OsintPanelInner({ isMobile, onSweepVisualize }: OsintPanelProps) {
         case 'certs': url = `/api/osint/certs?domain=${encodeURIComponent(query)}`; break;
         case 'whois': url = `/api/osint/whois?domain=${encodeURIComponent(query)}`; break;
         case 'threats': url = `/api/osint/threats?query=${encodeURIComponent(query)}`; break;
+        case 'ip': url = `/api/osint/ip?ip=${encodeURIComponent(query)}`; break;
+        case 'bgp': url = `/api/osint/bgp?query=${encodeURIComponent(query)}`; break;
         case 'scanner': url = `/api/scanner?target=${encodeURIComponent(query)}&type=${scanType}`; break;
         case 'vuln': url = `/api/scanner?target=${encodeURIComponent(query)}&type=vuln`; break;
         case 'headers': url = `/api/scanner?target=${encodeURIComponent(query)}&type=headers`; break;
@@ -331,6 +335,145 @@ function OsintPanelInner({ isMobile, onSweepVisualize }: OsintPanelProps) {
           <ResultRow label="Expires" value={r.expires || r.not_after} />
           <ResultRow label="SANs" value={Array.isArray(r.sans) ? r.sans.join(', ') : r.sans} />
           {renderFallback()}
+        </div>
+      );
+    }
+
+    // ── IP INTEL ──
+    if (activeTab === 'ip') {
+      return (
+        <div>
+          <SectionHeader title="IP INTELLIGENCE" icon={MapPin} color="#00BCD4" />
+          <ResultRow label="IP" value={r.ip || query} color="#00BCD4" />
+          {r.geo && (
+            <>
+              <ResultRow label="Country" value={`${r.geo.country || ''} ${r.geo.country_code ? `(${r.geo.country_code})` : ''}`.trim()} />
+              <ResultRow label="Region" value={r.geo.region} />
+              <ResultRow label="City" value={r.geo.city} />
+              <ResultRow label="Coordinates" value={r.geo.lat && r.geo.lon ? `${r.geo.lat}, ${r.geo.lon}` : undefined} />
+              <ResultRow label="Timezone" value={r.geo.timezone} />
+              <ResultRow label="ISP" value={r.geo.isp || r.geo.org} />
+              <ResultRow label="ASN" value={r.geo.asn || r.geo.as} />
+            </>
+          )}
+          {renderFallbackExcluding(['ip','geo','timestamp','cached'])}
+        </div>
+      );
+    }
+
+    // ── BGP / ASN ──
+    if (activeTab === 'bgp') {
+      const ipBlock = r.ip;
+      const asn = r.asn;
+      const prefixes = r.prefixes || asn?.ipv4_prefixes || [];
+      const peers = r.peers || [];
+      return (
+        <div>
+          <SectionHeader title="BGP / ASN INTEL" icon={Network} color="#FFC107" />
+          <ResultRow label="Query" value={r.query || query} color="#FFC107" />
+          <ResultRow label="Type" value={r.type} />
+          {ipBlock && (
+            <>
+              <ResultRow label="Prefix" value={ipBlock.prefix || ipBlock.allocation?.prefix} />
+              <ResultRow label="ASN" value={Array.isArray(ipBlock.asns) ? ipBlock.asns.map((a: any) => `AS${a.asn} ${a.name || ''}`).join(', ') : ipBlock.asn} />
+              <ResultRow label="Country" value={ipBlock.country?.name || ipBlock.country_code} />
+              <ResultRow label="RIR" value={ipBlock.rir_allocation?.rir_name} />
+            </>
+          )}
+          {asn && (
+            <>
+              <ResultRow label="ASN" value={`AS${asn.asn} ${asn.name || ''}`} />
+              <ResultRow label="Description" value={asn.description_short || asn.description} />
+              <ResultRow label="Country" value={asn.country_code} />
+              <ResultRow label="Website" value={asn.website} />
+            </>
+          )}
+          {Array.isArray(prefixes) && prefixes.length > 0 && (
+            <>
+              <SectionHeader title={`PREFIXES (${prefixes.length})`} icon={Layers} color="#FFC107" />
+              <div className="space-y-0.5 max-h-[180px] overflow-y-auto styled-scrollbar">
+                {prefixes.slice(0, 50).map((p: any, i: number) => (
+                  <div key={i} className="text-[10px] font-mono text-[var(--text-secondary)] flex justify-between px-2 py-0.5">
+                    <span>{p.prefix || p}</span>
+                    <span className="text-[var(--text-muted)] truncate ml-2 max-w-[60%]">{p.name || p.description}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          {Array.isArray(peers) && peers.length > 0 && (
+            <ResultRow label="Peers" value={`${peers.length} peer ASNs`} />
+          )}
+          {renderFallbackExcluding(['query','type','ip','asn','prefixes','peers','timestamp'])}
+        </div>
+      );
+    }
+
+    // ── HEADERS ──
+    if (activeTab === 'headers') {
+      const headers = r.headers || {};
+      return (
+        <div>
+          <SectionHeader title="HTTP RESPONSE HEADERS" icon={Code} color="#87CEEB" />
+          <ResultRow label="URL" value={r.final_url || r.url || query} color="#87CEEB" />
+          <ResultRow label="Status" value={r.status ? `${r.status} ${r.status_text || ''}`.trim() : undefined} color={r.status >= 200 && r.status < 400 ? '#00E676' : '#FF9500'} />
+          {Object.entries(headers).length > 0 && (
+            <div className="mt-1 space-y-0.5 max-h-[400px] overflow-y-auto styled-scrollbar">
+              {Object.entries(headers).map(([k, v]) => (
+                <div key={k} className="flex items-start gap-2 py-1 border-b border-[var(--border-secondary)]/20 last:border-0">
+                  <span className="text-[9px] font-mono text-[var(--cyan-primary)] uppercase tracking-wider w-[140px] flex-shrink-0">{k}</span>
+                  <span className="text-[10px] font-mono text-[var(--text-primary)] break-all flex-1">{String(v)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ── SUBDOMAINS ──
+    if (activeTab === 'subdomains') {
+      const subs: string[] = r.subdomains || [];
+      return (
+        <div>
+          <SectionHeader title="SUBDOMAIN ENUMERATION" icon={Layers} color="#00BCD4" />
+          <ResultRow label="Domain" value={r.target || query} color="#00BCD4" />
+          <ResultRow label="Source" value={r.source || 'crt.sh'} />
+          <ResultRow label="Total Found" value={r.count ?? subs.length} color="#00E676" />
+          {subs.length > 0 && (
+            <div className="mt-2 max-h-[400px] overflow-y-auto styled-scrollbar space-y-0.5">
+              {subs.map((s, i) => (
+                <a key={i} href={`https://${s}`} target="_blank" rel="noreferrer"
+                  className="block px-2 py-1 text-[10px] font-mono text-[var(--text-secondary)] hover:text-[#00BCD4] hover:bg-[var(--hover-accent)] rounded transition-colors break-all">
+                  {s}
+                </a>
+              ))}
+            </div>
+          )}
+          {subs.length === 0 && renderFallback()}
+        </div>
+      );
+    }
+
+    // ── TECH DETECT ──
+    if (activeTab === 'tech') {
+      const tech: any[] = r.technologies || [];
+      return (
+        <div>
+          <SectionHeader title="TECHNOLOGY FINGERPRINT" icon={Fingerprint} color="#9C27B0" />
+          <ResultRow label="URL" value={r.url || query} color="#9C27B0" />
+          <ResultRow label="Status" value={r.status} />
+          <ResultRow label="Found" value={`${tech.length} technologies`} color={tech.length > 0 ? '#00E676' : undefined} />
+          {tech.length > 0 && (
+            <div className="mt-2 grid grid-cols-2 gap-1.5">
+              {tech.map((t, i) => (
+                <div key={i} className="px-2 py-1.5 rounded border border-[#9C27B0]/20 bg-[#9C27B0]/5">
+                  <div className="text-[10px] font-mono font-bold text-[#9C27B0]">{t.name}</div>
+                  <div className="text-[9px] font-mono text-[var(--text-muted)]">{t.category}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       );
     }
@@ -698,7 +841,7 @@ function OsintPanelInner({ isMobile, onSweepVisualize }: OsintPanelProps) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-secondary)] bg-[#111]">
           <div className="flex items-center gap-3">
             <Radar className="w-5 h-5 text-[var(--cyan-primary)]" />
-            <span className="hud-text text-[16px] text-[var(--text-primary)]">OSIRIS RECON TOOLKIT</span>
+            <span className="hud-text text-[16px] text-[var(--text-primary)]">RUDRAOSINT RECON TOOLKIT</span>
             <span className="gotham-tag gotham-tag--info" style={{ fontSize: '9px' }}>FULL SCREEN</span>
             <span className="gotham-tag gotham-tag--classified" style={{ fontSize: '8px' }}>{TABS.length} MODULES</span>
           </div>

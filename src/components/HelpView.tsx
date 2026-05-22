@@ -17,15 +17,15 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Where does the camera data come from?',
-    a: 'Public traffic and city camera networks: Transport for London, Washington State DOT, Caltrans, NYC DOT, VicRoads (Australia), and several European agencies. All feeds are already public — OSIRIS just lays them out in one place.',
+    a: 'Public traffic and city camera networks: Transport for London, Washington State DOT, Caltrans, NYC DOT, VicRoads (Australia), and several European agencies. All feeds are already public — RudraOSINT just lays them out in one place.',
   },
   {
     q: 'Do I need an API key?',
-    a: 'No. Every tool here works out of the box. The original Osiris project supported optional API keys for higher rate limits — this beginner fork sticks to the free tier.',
+    a: 'No. Every tool here works out of the box. The upstream Osiris project supports optional API keys for higher rate limits — this beginner fork (RudraOSINT) sticks to the free tier.',
   },
   {
     q: 'Will my searches be logged or shared?',
-    a: 'Your searches are sent to your own browser, then to the Osiris API which forwards to the relevant public data source. There is rate-limiting per IP. There is no per-user logging or third-party sharing in this fork.',
+    a: 'Your searches are sent from your browser to the RudraOSINT API, which forwards them to the relevant public data source. There is rate-limiting per IP. There is no per-user logging or third-party sharing in this fork.',
   },
 ];
 

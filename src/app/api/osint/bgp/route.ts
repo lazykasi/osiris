@@ -1,77 +1,111 @@
 import { NextResponse } from 'next/server';
 import { isRateLimited, getClientIp } from '@/lib/ssrf-guard';
 
-// BGP/ASN Lookup via bgpview.io (free, no key)
+/**
+ * BGP/ASN lookup via RIPEstat (free, no key, reliable).
+ * Accepts: IP, AS number (with or without "AS" prefix), or prefix.
+ */
+const RIPESTAT = 'https://stat.ripe.net/data';
+
+async function ripe(endpoint: string, resource: string, timeoutMs = 8000) {
+  const url = `${RIPESTAT}/${endpoint}/data.json?resource=${encodeURIComponent(resource)}&sourceapp=rudraosint`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs), headers: { Accept: 'application/json' } });
+  if (!res.ok) throw new Error(`RIPEstat ${endpoint} returned ${res.status}`);
+  const json = await res.json();
+  if (json.status !== 'ok' && json.status_code !== 200 && json.data == null) {
+    throw new Error(`RIPEstat ${endpoint} status ${json.status || 'unknown'}`);
+  }
+  return json.data;
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const query = searchParams.get('query'); // Can be IP, ASN, or prefix
-  if (!query) return NextResponse.json({ error: 'Missing query parameter (IP, ASN number, or prefix)' }, { status: 400 });
+  const query = (searchParams.get('query') || searchParams.get('asn') || searchParams.get('ip') || '').trim();
+  if (!query) {
+    return NextResponse.json({ error: 'Missing query parameter (IP, ASN, or prefix)' }, { status: 400 });
+  }
 
   const clientIp = getClientIp(req);
   if (isRateLimited(clientIp, 20, 60_000)) {
     return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
+  const isIPv4 = /^(\d{1,3}\.){3}\d{1,3}$/.test(query);
+  const isPrefix = /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/.test(query) || /:.+\/\d+$/.test(query);
+  const isASN = /^(AS)?\d+$/i.test(query);
+  const asnNumber = isASN ? query.replace(/^AS/i, '') : null;
+  const ripeResource = asnNumber ? `AS${asnNumber}` : query;
+
+  const results: any = { query, timestamp: new Date().toISOString() };
+
   try {
-    const results: any = { query, timestamp: new Date().toISOString() };
-
-    // Detect query type
-    const isIP = /^(\d{1,3}\.){3}\d{1,3}$/.test(query);
-    const isASN = /^(AS)?\d+$/i.test(query);
-    const asnNum = isASN ? query.replace(/^AS/i, '') : null;
-
-    if (isIP) {
-      // IP → ASN lookup
-      const res = await fetch(`https://api.bgpview.io/ip/${query}`, {
-        signal: AbortSignal.timeout(8000),
-        headers: { 'Accept': 'application/json' },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.status === 'ok') {
-          results.ip = data.data;
-          results.type = 'ip';
-        }
-      }
-    } else if (asnNum) {
-      // ASN details
-      const [asnRes, prefixRes, peersRes] = await Promise.allSettled([
-        fetch(`https://api.bgpview.io/asn/${asnNum}`, { signal: AbortSignal.timeout(8000) }),
-        fetch(`https://api.bgpview.io/asn/${asnNum}/prefixes`, { signal: AbortSignal.timeout(8000) }),
-        fetch(`https://api.bgpview.io/asn/${asnNum}/peers`, { signal: AbortSignal.timeout(8000) }),
+    if (isIPv4 || isPrefix) {
+      results.type = isPrefix ? 'prefix' : 'ip';
+      const [netInfo, prefixOverview, whois] = await Promise.allSettled([
+        ripe('network-info', query),
+        ripe('prefix-overview', query),
+        ripe('whois', query),
       ]);
-
-      if (asnRes.status === 'fulfilled' && asnRes.value.ok) {
-        const d = await asnRes.value.json();
-        if (d.status === 'ok') results.asn = d.data;
+      if (netInfo.status === 'fulfilled') {
+        results.ip = {
+          prefix: netInfo.value.prefix,
+          asns: (netInfo.value.asns || []).map((a: any) => ({ asn: a })),
+        };
       }
-      if (prefixRes.status === 'fulfilled' && prefixRes.value.ok) {
-        const d = await prefixRes.value.json();
-        if (d.status === 'ok') {
-          results.prefixes = {
-            ipv4: (d.data?.ipv4_prefixes || []).slice(0, 20),
-            ipv6: (d.data?.ipv6_prefixes || []).slice(0, 10),
-            total_v4: d.data?.ipv4_prefixes?.length || 0,
-            total_v6: d.data?.ipv6_prefixes?.length || 0,
-          };
+      if (prefixOverview.status === 'fulfilled') {
+        const d = prefixOverview.value;
+        results.prefix_info = {
+          prefix: d.resource,
+          block: d.block,
+          announced: d.announced,
+          asns: (d.asns || []).map((a: any) => ({ asn: a.asn, holder: a.holder })),
+        };
+        if (results.ip && d.asns?.length) {
+          results.ip.asns = d.asns.map((a: any) => ({ asn: a.asn, name: a.holder }));
         }
       }
-      if (peersRes.status === 'fulfilled' && peersRes.value.ok) {
-        const d = await peersRes.value.json();
-        if (d.status === 'ok') {
-          results.peers = {
-            upstream: (d.data?.ipv4_peers || []).slice(0, 10),
-            total: d.data?.ipv4_peers?.length || 0,
-          };
-        }
+      if (whois.status === 'fulfilled') {
+        results.whois_authority = whois.value.authorities?.[0];
+        results.country_code = whois.value.records?.[0]?.find((r: any) => /country/i.test(r.key))?.value;
       }
+    } else if (asnNumber) {
       results.type = 'asn';
+      const [overview, prefixes, neighbours] = await Promise.allSettled([
+        ripe('as-overview', `AS${asnNumber}`),
+        ripe('announced-prefixes', `AS${asnNumber}`),
+        ripe('asn-neighbours', `AS${asnNumber}`),
+      ]);
+      if (overview.status === 'fulfilled') {
+        const d = overview.value;
+        results.asn = {
+          asn: asnNumber,
+          name: d.holder,
+          description_short: d.holder,
+          country_code: d.resource?.split('-')?.[0]?.match(/[A-Z]{2}/)?.[0],
+          announced: d.announced,
+          type: d.type,
+          block: d.block,
+        };
+      }
+      if (prefixes.status === 'fulfilled') {
+        const list = (prefixes.value.prefixes || []).map((p: any) => ({
+          prefix: p.prefix,
+          name: p.timelines?.[0]?.starttime ? `seen ${p.timelines[0].starttime.slice(0, 10)}` : undefined,
+        }));
+        results.prefixes = list.slice(0, 200);
+        results.prefixes_total = list.length;
+      }
+      if (neighbours.status === 'fulfilled') {
+        const list = neighbours.value.neighbours || [];
+        results.peers = list.slice(0, 50).map((n: any) => ({ asn: n.asn, type: n.type, power: n.power }));
+        results.peers_total = list.length;
+      }
     } else {
-      return NextResponse.json({ error: 'Unrecognized query format. Use IP address or AS number.' }, { status: 400 });
+      return NextResponse.json({ error: 'Unrecognized query format. Use IP address, ASN (e.g. AS15169) or prefix.' }, { status: 400 });
     }
 
     return NextResponse.json(results);
-  } catch {
-    return NextResponse.json({ error: 'BGP lookup failed' }, { status: 500 });
+  } catch (e: any) {
+    return NextResponse.json({ error: 'BGP lookup failed', detail: e?.message || String(e) }, { status: 502 });
   }
 }

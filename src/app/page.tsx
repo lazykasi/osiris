@@ -25,7 +25,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const seen = localStorage.getItem('osiris.tour.seen.v1');
+    const seen = localStorage.getItem('rudraosint.tour.seen.v1');
     if (!seen) setShowTour(true);
     const p = new URLSearchParams(window.location.search);
     const t = p.get('tab') as Tab | null;
@@ -40,7 +40,7 @@ export default function Dashboard() {
   }, [tab]);
 
   const dismissTour = () => {
-    if (typeof window !== 'undefined') localStorage.setItem('osiris.tour.seen.v1', '1');
+    if (typeof window !== 'undefined') localStorage.setItem('rudraosint.tour.seen.v1', '1');
     setShowTour(false);
   };
 
@@ -54,7 +54,7 @@ export default function Dashboard() {
               <div className="w-3 h-3 rounded-full bg-[var(--gold-primary)]/30 border border-[var(--gold-primary)]/60" />
             </div>
             <div>
-              <h1 className="text-base md:text-lg font-bold tracking-[0.3em] font-mono text-[var(--text-heading)]">OSIRIS</h1>
+              <h1 className="text-base md:text-lg font-bold tracking-[0.25em] font-mono text-[var(--text-heading)]">RUDRA<span className="text-[var(--gold-primary)]">OSINT</span></h1>
               <p className="text-[9px] md:text-[10px] text-[var(--gold-primary)] font-mono tracking-[0.2em] opacity-80">
                 OSINT TOOLKIT · BEGINNER FRIENDLY
               </p>
@@ -140,7 +140,7 @@ export default function Dashboard() {
       {/* ── FOOTER ── */}
       <footer className="border-t border-[var(--border-secondary)] py-3 px-4 text-center">
         <p className="text-[10px] font-mono text-[var(--text-muted)] tracking-wider">
-          OSIRIS · Open-source OSINT toolkit · Use only on systems you own or are authorised to test
+          RudraOSINT · Open-source OSINT toolkit · Use only on systems you own or are authorised to test
         </p>
       </footer>
 

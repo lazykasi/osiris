@@ -12,7 +12,7 @@ interface WelcomeTourProps {
 const STEPS = [
   {
     icon: BookOpen,
-    title: 'Welcome to OSIRIS',
+    title: 'Welcome to RudraOSINT',
     body: 'A friendly OSINT toolkit. Type a domain or IP, get back DNS, WHOIS, certificates, open ports — all from one screen.',
   },
   {
